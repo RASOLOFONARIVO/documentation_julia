@@ -246,6 +246,82 @@
         font-size: .88rem;
       }
 
+      .capture a:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+        border-radius: 8px;
+      }
+
+      .lightbox {
+        width: min(1200px, calc(100% - 32px));
+        max-width: none;
+        max-height: calc(100% - 32px);
+        padding: 16px;
+        border: 1px solid #ffffff30;
+        border-radius: 18px;
+        background: #101828;
+        color: #fff;
+        box-shadow: 0 24px 80px #0008;
+      }
+
+      .lightbox::backdrop { background: #101828d9; }
+
+      .lightbox-header,
+      .lightbox-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .lightbox-header { margin-bottom: 12px; }
+      .lightbox-footer { margin-top: 12px; }
+
+      .lightbox-count {
+        margin: 0;
+        color: #d0d5dd;
+        font-size: .9rem;
+      }
+
+      .lightbox button {
+        min-height: 42px;
+        padding: 9px 14px;
+        border: 1px solid #ffffff40;
+        border-radius: 10px;
+        background: #ffffff12;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .lightbox button:hover:not(:disabled) { background: #ffffff25; }
+      .lightbox button:focus-visible { outline: 3px solid #8fc2ff; outline-offset: 2px; }
+      .lightbox button:disabled { opacity: .4; cursor: not-allowed; }
+
+      .lightbox-close { margin-left: auto; }
+
+      .lightbox-image {
+        display: block;
+        width: 100%;
+        max-height: calc(100vh - 170px);
+        object-fit: contain;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .lightbox-caption {
+        margin: 0;
+        color: #eaecf0;
+        font-size: .92rem;
+      }
+
+      @media (max-width: 560px) {
+        .lightbox { width: calc(100% - 16px); max-height: calc(100% - 16px); padding: 10px; }
+        .lightbox-footer { align-items: stretch; flex-wrap: wrap; }
+        .lightbox-caption { order: -1; width: 100%; }
+        .lightbox-image { max-height: calc(100vh - 190px); }
+      }
+
       .status {
         display: inline-block;
         padding: 2px 9px;
@@ -583,11 +659,71 @@
             <li>Les étapes de checklist se traitent dans l’ordre de priorité.</li>
             <li>Les commentaires, mentions, fichiers et rapports facilitent le suivi partagé, dans le respect des droits d’accès.</li>
           </ul>
-          <p class="small">Les captures s’ouvrent en taille réelle dans un nouvel onglet lorsque vous cliquez dessus. Le fichier HTML et les 21 images se trouvent ensemble dans ce dossier : vous pouvez déplacer ou copier tout le dossier sans séparer ses fichiers.</p>
+          <p class="small">Cliquez sur une capture pour l’agrandir et naviguer entre les images. Le fichier HTML et les 21 images se trouvent ensemble dans ce dossier : vous pouvez déplacer ou copier tout le dossier sans séparer ses fichiers.</p>
         </section>
       </main>
     </div>
 
     <footer>Guide utilisateur — Gestion des tâches dans Julia</footer>
+    <dialog class="lightbox" aria-label="Visionneuse des captures d’écran">
+      <div class="lightbox-header">
+        <p class="lightbox-count" aria-live="polite"></p>
+        <button class="lightbox-close" type="button" aria-label="Fermer la visionneuse">Fermer</button>
+      </div>
+      <img class="lightbox-image" alt="">
+      <div class="lightbox-footer">
+        <button class="lightbox-previous" type="button">Précédente</button>
+        <p class="lightbox-caption"></p>
+        <button class="lightbox-next" type="button">Suivante</button>
+      </div>
+    </dialog>
+    <script>
+      const lightbox = document.querySelector(".lightbox");
+      const lightboxImage = lightbox.querySelector(".lightbox-image");
+      const lightboxCaption = lightbox.querySelector(".lightbox-caption");
+      const lightboxCount = lightbox.querySelector(".lightbox-count");
+      const previousButton = lightbox.querySelector(".lightbox-previous");
+      const nextButton = lightbox.querySelector(".lightbox-next");
+      const captures = Array.from(document.querySelectorAll(".capture a"));
+      let activeCapture = 0;
+
+      function showCapture(index) {
+        activeCapture = index;
+        const link = captures[index];
+        const image = link.querySelector("img");
+        const caption = link.closest("figure").querySelector("figcaption");
+
+        lightboxImage.src = link.href;
+        lightboxImage.alt = image.alt;
+        lightboxCaption.textContent = caption.textContent.trim();
+        lightboxCount.textContent = `Capture ${index + 1} sur ${captures.length}`;
+        previousButton.disabled = index === 0;
+        nextButton.disabled = index === captures.length - 1;
+      }
+
+      captures.forEach((link, index) => {
+        link.addEventListener("click", event => {
+          if (typeof lightbox.showModal !== "function") return;
+          event.preventDefault();
+          showCapture(index);
+          lightbox.showModal();
+        });
+      });
+
+      lightbox.querySelector(".lightbox-close").addEventListener("click", () => lightbox.close());
+      previousButton.addEventListener("click", () => {
+        if (activeCapture > 0) showCapture(activeCapture - 1);
+      });
+      nextButton.addEventListener("click", () => {
+        if (activeCapture < captures.length - 1) showCapture(activeCapture + 1);
+      });
+      lightbox.addEventListener("click", event => {
+        if (event.target === lightbox) lightbox.close();
+      });
+      lightbox.addEventListener("keydown", event => {
+        if (event.key === "ArrowLeft" && activeCapture > 0) showCapture(activeCapture - 1);
+        if (event.key === "ArrowRight" && activeCapture < captures.length - 1) showCapture(activeCapture + 1);
+      });
+    </script>
   </body>
 </html>
